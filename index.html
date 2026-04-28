@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JERE Exchange</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      margin:0;
+      font-family: Arial;
+      background:#020617;
+      color:white;
+    }
+
+    .hidden{display:none;}
+
+    #login {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+    }
+
+    .box {
+      background:#0f172a;
+      padding:25px;
+      border-radius:10px;
+      width:300px;
+      text-align:center;
+    }
+
+    input {
+      width:100%;
+      padding:10px;
+      margin:10px 0;
+      border:none;
+      border-radius:5px;
+      background:#1e293b;
+      color:white;
+    }
+
+    button {
+      width:100%;
+      padding:10px;
+      margin-top:10px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    .green { background:#22c55e; color:black; }
+    .gray { background:#334155; color:white; }
+
+    .topbar {
+      background:#0f172a;
+      padding:10px;
+      display:flex;
+      justify-content:space-between;
+    }
+
+    .container { display:flex; }
+
+    .sidebar {
+      width:200px;
+      padding:20px;
+      background:#020617;
+    }
+
+    .menu {
+      padding:10px;
+      cursor:pointer;
+    }
+
+    .menu:hover { background:#1e293b; }
+
+    .main { flex:1; padding:20px; }
+
+    .card {
+      background:#0f172a;
+      padding:15px;
+      border-radius:10px;
+      margin-bottom:10px;
+    }
+
+    .price-box {
+      display:flex;
+      gap:20px;
+      margin-top:10px;
+    }
+
+    .price {
+      background:#1e293b;
+      padding:10px;
+      border-radius:8px;
+      flex:1;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="box">
+    <h2>🚀 JERE Exchange</h2>
+
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+
+    <button class="green" id="registerBtn">Register</button>
+    <button class="gray" id="loginBtn">Login</button>
+
+    <p id="msg"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+  <div class="topbar">
+    <span id="user"></span>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <div class="container">
+
+    <div class="sidebar">
+      <h3>JERE</h3>
+      <div class="menu" data-page="dashboard">Dashboard</div>
+      <div class="menu" data-page="trade">Trade</div>
+      <div class="menu" data-page="wallet">Wallet</div>
+    </div>
+
+    <div class="main">
+
+      <div id="dashboard">
+        <div class="card">
+          <h2>Balance: $<span id="balance">0</span></h2>
+        </div>
+
+        <div class="card">
+          <h3>Live Crypto Prices</h3>
+
+          <div class="price-box">
+            <div class="price">BTC: $<span id="btcPrice">Loading...</span></div>
+            <div class="price">ETH: $<span id="ethPrice">Loading...</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="trade" class="hidden">
+        <div class="card">
+          <button id="buyBtn">Buy $100</button>
+          <button id="sellBtn">Sell $100</button>
+        </div>
+      </div>
+
+      <div id="wallet" class="hidden">
+        <div class="card">
+          <button id="depositBtn">Deposit $100</button>
+          <button id="withdrawBtn">Withdraw $50</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+/* ✅ FIXED FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyDywHvZ3j1V1yEw7ED5138Yu8cSDvcBYH0",
+  authDomain: "jere-exchange.firebaseapp.com",
+  projectId: "jere-exchange",
+  storageBucket: "jere-exchange.appspot.com",
+  messagingSenderId: "799932835990",
+  appId: "1:799932835990:web:9e216a988714cc3d823ab7"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* UI */
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const msg = document.getElementById("msg");
+
+const loginDiv = document.getElementById("login");
+const appDiv = document.getElementById("app");
+const userEl = document.getElementById("user");
+const balanceEl = document.getElementById("balance");
+
+let currentUser = null;
+
+/* AUTH */
+document.getElementById("registerBtn").onclick = async () => {
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+    await setDoc(doc(db, "users", userCred.user.uid), { balance: 1000 });
+    msg.innerText = "Account created!";
+  } catch (err) {
+    msg.innerText = err.message;
+  }
+};
+
+document.getElementById("loginBtn").onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+  } catch (err) {
+    msg.innerText = err.message;
+  }
+};
+
+document.getElementById("logoutBtn").onclick = () => signOut(auth);
+
+/* AUTH STATE */
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    loginDiv.style.display = "flex";
+    appDiv.classList.add("hidden");
+    return;
+  }
+
+  currentUser = user;
+
+  loginDiv.style.display = "none";
+  appDiv.classList.remove("hidden");
+
+  userEl.innerText = user.email;
+
+  const ref = doc(db, "users", user.uid);
+
+  onSnapshot(ref, (snap) => {
+    if (snap.exists()) {
+      balanceEl.innerText = snap.data().balance;
+    }
+  });
+});
+
+/* BALANCE */
+async function changeBalance(amount) {
+  if (!currentUser) return;
+
+  const ref = doc(db, "users", currentUser.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) return;
+
+  let balance = snap.data().balance || 0;
+  await updateDoc(ref, { balance: balance + amount });
+}
+
+/* ACTIONS */
+document.getElementById("depositBtn").onclick = () => changeBalance(100);
+document.getElementById("withdrawBtn").onclick = () => changeBalance(-50);
+document.getElementById("buyBtn").onclick = () => changeBalance(-100);
+document.getElementById("sellBtn").onclick = () => changeBalance(100);
+
+/* NAVIGATION FIX */
+document.querySelectorAll(".menu").forEach(item => {
+  item.onclick = () => {
+    document.querySelectorAll(".main > div").forEach(p => p.classList.add("hidden"));
+    document.getElementById(item.dataset.page).classList.remove("hidden");
+  };
+});
+
+/* CRYPTO PRICES */
+async function loadPrices() {
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd");
+    const data = await res.json();
+
+    document.getElementById("btcPrice").innerText = data.bitcoin.usd;
+    document.getElementById("ethPrice").innerText = data.ethereum.usd;
+  } catch (e) {
+    console.log("Price error", e);
+  }
+}
+
+loadPrices();
+setInterval(loadPrices, 30000);
+
+</script>
+
+</body>
+      </html>
